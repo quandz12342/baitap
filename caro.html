@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cờ Caro</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f0f0;
+            background-image: url('cuoiki.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        h1 {
+            color: #333;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        #board {
+            display: grid;
+            gap: 2px;
+            margin-top: 20px;
+            border: 2px solid #333;
+            background-color: #333;
+            padding: 2px;
+            border-radius: 10px;
+        }
+
+        .square {
+            width: 30px;
+            height: 30px;
+            background-color: #fff;
+            border-radius: 4px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .square:hover {
+            background-color: #f1c40f;
+        }
+
+        .square.x {
+            color: red;
+        }
+
+        .square.o {
+            color: blue;
+        }
+
+        .square.highlight {
+            background-color: yellow !important;
+        }
+
+        .buttons-container {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        button {
+            margin: 5px;
+            padding: 10px 15px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #3498db;
+            color: white;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+            transform: scale(1.05);
+        }
+
+        #status {
+            margin-top: 10px;
+            font-size: 18px;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        #game-over-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+        }
+
+        #game-over-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        #game-over-content p {
+            font-size: 24px;
+            margin: 0;
+        }
+
+        #game-over-content button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 18px;
+        }
+
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #f9f9f9;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+            z-index: 1;
+        }
+
+        .dropdown-content a {
+            color: black;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+        }
+
+        .dropdown-content a:hover {
+            background-color: #f1f1f1;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        .dropdown:hover .dropbtn {
+            background-color: #3e8e41;
+        }
+    </style>
+</head>
+<body>
+    <h1>Cờ Caro</h1>
+    <div class="dropdown">
+        <button class="dropbtn" id="dimension-button">Chọn đấu trường</button>
+        <div class="dropdown-content" id="dimension-options">
+            <a href="#" data-dimension="10">10x10</a>
+            <a href="#" data-dimension="12">12x12</a>
+            <a href="#" data-dimension="15">15x15</a>
+            <a href="#" data-dimension="16">16x16</a>
+            <a href="#" data-dimension="20">20x20</a>
+        </div>
+    </div>
+    <p id="status"></p>
+    <div class="buttons-container">
+        <button id="restart-btn">Khởi động lại</button>
+        <button id="single-player-toggle">Chế độ chơi đơn</button>
+    </div>
+    <div id="board"></div>
+
+    <div id="game-over-modal">
+        <div id="game-over-content">
+            <p id="game-over-message"></p>
+            <button id="game-over-restart-btn">Chơi lại</button>
+            <button id="show-wheel-btn">Chọn hình phạt</button> 
+        </div>
+    </div>
+
+    <audio id="game-over-sound">
+        <source src="sound2.mp3" type="audio/mpeg">
+    </audio>
+    <div id="background_music"></div>
+
+    <audio id="background-music" src="sound1.mp3" loop></audio>
+
+    <script>
+        document.getElementById('background-music').play();
+
+        const dimensionButton = document.getElementById('dimension-button');
+        const dimensionOptions = document.getElementById('dimension-options');
+        const statusElement = document.getElementById('status');
+        const restartButton = document.getElementById('restart-btn');
+        const singlePlayerToggle = document.getElementById('single-player-toggle');
+        const boardElement = document.getElementById('board');
+        const gameOverModal = document.getElementById('game-over-modal');
+        const gameOverMessage = document.getElementById('game-over-message');
+        const gameOverRestartButton = document.getElementById('game-over-restart-btn');
+        const showWheelButton = document.getElementById('show-wheel-btn');
+
+        let dimension = 10;
+        let singlePlayerMode = false;
+        let squares = Array.from({ length: dimension }, () => Array(dimension).fill(null));
+        let currentPlayer = 'X';
+        let gameActive = true;
+
+        function createBoard() {
+            boardElement.innerHTML = '';
+            boardElement.style.gridTemplateColumns = `repeat(${dimension}, 1fr)`;
+            boardElement.style.gridTemplateRows = `repeat(${dimension}, 1fr)`;
+            for (let i = 0; i < dimension; i++) {
+                for (let j = 0; j < dimension; j++) {
+                    const square = document.createElement('div');
+                    square.classList.add('square');
+                    square.dataset.row = i;
+                    square.dataset.col = j;
+                    square.addEventListener('click', () => handleSquareClick(i, j));
+                    boardElement.appendChild(square);
+                }
+            }
+        }
+
+        function handleSquareClick(row, col) {
+            if (squares[row][col] || !gameActive) {
+                return;
+            }
+
+            squares[row][col] = currentPlayer;
+            updateBoard();
+
+            if (checkWin(row, col)) {
+                showGameOverModal(currentPlayer);
+                gameActive = false;
+                return;
+            }
+
+            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+            updateStatus();
+
+            if (singlePlayerMode && currentPlayer === 'O') {
+                setTimeout(makeComputerMove, 500);
+            }
+        }
+
+        function updateBoard() {
+            for (let i = 0; i < dimension; i++) {
+                for (let j = 0; j < dimension; j++) {
+                    const square = document.querySelector(`.square[data-row='${i}'][data-col='${j}']`);
+                    square.textContent = squares[i][j];
+                    square.className = `square ${squares[i][j] ? squares[i][j].toLowerCase() : ''}`;
+                }
+            }
+        }
+
+        function updateStatus() {
+            statusElement.textContent = `Lượt của người chơi: ${currentPlayer}`;
+        }
+
+        function checkWin(row, col) {
+            const directions = [
+                { x: 0, y: 1 },
+                { x: 1, y: 0 },
+                { x: 1, y: 1 },
+                { x: 1, y: -1 },
+            ];
+
+            for (let { x, y } of directions) {
+                let count = 1;
+                for (let step = 1; step <= 4; step++) {
+                    const newRow = row + step * x;
+                    const newCol = col + step * y;
+                    if (newRow >= 0 && newRow < dimension && newCol >= 0 && newCol < dimension && squares[newRow][newCol] === currentPlayer) {
+                        count++;
+                    } else {
+                        break;
+                    }
+                }
+
+                for (let step = 1; step <= 4; step++) {
+                    const newRow = row - step * x;
+                    const newCol = col - step * y;
+                    if (newRow >= 0 && newRow < dimension && newCol >= 0 && newCol < dimension && squares[newRow][newCol] === currentPlayer) {
+                        count++;
+                    } else {
+                        break;
+                    }
+                }
+
+                if (count >= 5) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        function showGameOverModal(winner) {
+            gameOverMessage.textContent = `Game over!`;
+            gameOverModal.style.display = 'flex';
+            document.getElementById('game-over-sound').play();
+        }
+
+        function makeComputerMove() {
+            const emptySquares = [];
+            for (let i = 0; i < dimension; i++) {
+                for (let j = 0; j < dimension; j++) {
+                    if (!squares[i][j]) {
+                        emptySquares.push({ row: i, col: j });
+                    }
+                }
+            }
+
+            const randomSquare = emptySquares[Math.floor(Math.random() * emptySquares.length)];
+            handleSquareClick(randomSquare.row, randomSquare.col);
+        }
+
+        dimensionOptions.addEventListener('click', (event) => {
+            const selectedDimension = event.target.getAttribute('data-dimension');
+            if (selectedDimension) {
+                dimension = parseInt(selectedDimension, 10);
+                squares = Array.from({ length: dimension }, () => Array(dimension).fill(null));
+                currentPlayer = 'X';
+                gameActive = true;
+                createBoard();
+                updateStatus();
+            }
+        });
+
+        restartButton.addEventListener('click', () => {
+            squares = Array.from({ length: dimension }, () => Array(dimension).fill(null));
+            currentPlayer = 'X';
+            gameActive = true;
+            createBoard();
+            updateStatus();
+        });
+
+        gameOverRestartButton.addEventListener('click', () => {
+            gameOverModal.style.display = 'none';
+            squares = Array.from({ length: dimension }, () => Array(dimension).fill(null));
+            currentPlayer = 'X';
+            gameActive = true;
+            createBoard();
+            updateStatus();
+        });
+
+        singlePlayerToggle.addEventListener('click', () => {
+            singlePlayerMode = !singlePlayerMode;
+            singlePlayerToggle.textContent = singlePlayerMode ? 'Chế độ hai người chơi' : 'Chế độ chơi đơn';
+        });
+
+        createBoard();
+        updateStatus();
+
+        showWheelButton.addEventListener('click', () => {
+            window.location.href = 'latthe.html'; 
+        });
+    </script>
+</body>
+</html>
